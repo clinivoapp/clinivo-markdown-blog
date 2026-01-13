@@ -2,46 +2,61 @@ const USERNAME = 'clinivoapp';
 const REPO = 'clinivo-markdown-blog';
 const API_URL = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/articles`;
 
-const linksElement = document.getElementById('links');
-const contentElement = document.getElementById('content');
 
-// 1. Fetch the list of articles from the /articles folder
-async function loadPostList() {
-    try {
-        const response = await fetch(API_URL);
-        const files = await response.json();
+const container = document.getElementById('view-container');
 
-        files.forEach(file => {
-            if (file.name.endsWith('.md')) {
-                const li = document.createElement('li');
-                const cleanName = file.name.replace('.md', '').replace(/-/g, ' ');
-                li.innerHTML = `<a href="#${file.name}">${cleanName}</a>`;
-                linksElement.appendChild(li);
-            }
-        });
-    } catch (err) {
-        contentElement.innerHTML = "Error loading post list. Check your repo settings.";
+async function router() {
+    const hash = window.location.hash.substring(1);
+    
+    if (!hash || hash === "") {
+        renderHome();
+    } else {
+        renderPost(hash);
     }
 }
 
-// 2. Fetch and render a specific Markdown file
-async function loadPost() {
-    const fileName = window.location.hash.substring(1);
-    if (!fileName) return;
+// 1. Home Page: Show a list of articles as cards
+async function renderHome() {
+    container.innerHTML = '<h2>Recent Articles</h2><div id="post-grid">Loading...</div>';
+    const grid = document.getElementById('post-grid');
 
+    try {
+        const response = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/articles`);
+        const files = await response.json();
+        
+        let html = '';
+        files.forEach(file => {
+            if (file.name.endsWith('.md')) {
+                const title = file.name.replace('.md', '').replace(/-/g, ' ');
+                html += `
+                    <div class="post-card">
+                        <a href="#${file.name}">
+                            <h3>${title}</h3>
+                            <span>Read article →</span>
+                        </a>
+                    </div>`;
+            }
+        });
+        grid.innerHTML = html;
+    } catch (err) {
+        grid.innerHTML = "Error loading articles.";
+    }
+}
+
+// 2. Post Page: Show the Markdown content
+async function renderPost(fileName) {
+    container.innerHTML = 'Loading article...';
     try {
         const response = await fetch(`https://raw.githubusercontent.com/${USERNAME}/${REPO}/main/articles/${fileName}`);
         const markdown = await response.text();
-        // Use Marked.js to convert MD to HTML
-        contentElement.innerHTML = marked.parse(markdown);
+        container.innerHTML = `
+            <a href="#" class="back-link">← Back to all posts</a>
+            <div class="markdown-body">${marked.parse(markdown)}</div>
+        `;
     } catch (err) {
-        contentElement.innerHTML = "Post not found.";
+        container.innerHTML = "Post not found.";
     }
 }
 
-// Listen for URL hash changes (e.g., #my-post.md)
-window.addEventListener('hashchange', loadPost);
-window.addEventListener('load', () => {
-    loadPostList();
-    if (window.location.hash) loadPost();
-});
+window.addEventListener('hashchange', router);
+window.addEventListener('load', router);
