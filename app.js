@@ -1,4 +1,4 @@
-const USERNAME = 'clinivoapp/';
+const USERNAME = 'clinivoapp';
 const REPO = 'clinivo-markdown-blog';
 const API_URL = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/articles`;
 
